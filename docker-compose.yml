@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    container_name: wialon-az
+    ports:
+      - "3000:3000"
+    environment:
+      - WIALON_HOST=${WIALON_HOST:-https://go.gps.az}
+      - WIALON_TOKEN=${WIALON_TOKEN}
+      - WIALON_RESOURCE_ID=${WIALON_RESOURCE_ID:-49131}
+      - WIALON_TEMPLATE_ID=${WIALON_TEMPLATE_ID:-16}
+      - PORT=3000
+    restart: unless-stopped

@@ -10,6 +10,12 @@ const HOST = (process.env.WIALON_HOST || 'https://go.gps.az').replace(/\/+$/, ''
 const ENV_TOKEN = process.env.WIALON_TOKEN || '';
 const AJAX = `${HOST}/wialon/ajax.html`;
 
+// Wialon formats report time strings (`t`) in the SESSION timezone. A token
+// session defaults to UTC, so set it to the account tz (Baku, UTC+4 = 14400s).
+// Keep language 'en' so table headers stay English (column mapping relies on them).
+const TZ_OFFSET = Number(process.env.WIALON_TZ_OFFSET || 14400);
+const LOCALE_LANG = process.env.WIALON_LANG || 'en';
+
 // Wialon error codes meaning "session is gone" -> re-login and retry once.
 const SESSION_ERRORS = new Set([1, 4, 5, 7, 1003]);
 
@@ -58,6 +64,15 @@ async function raw(svc: string, params: unknown, sid?: string): Promise<any> {
   }
 }
 
+/** Set the session timezone so report `t` strings match the Wialon web UI. */
+async function applyLocale(sid: string): Promise<void> {
+  try {
+    await raw('render/set_locale', { tzOffset: TZ_OFFSET, language: LOCALE_LANG }, sid);
+  } catch {
+    /* non-fatal: times would fall back to UTC */
+  }
+}
+
 async function loginToken(token: string): Promise<string> {
   if (!token) throw new AuthError('No Wialon token provided');
   const existing = logins.get(token);
@@ -67,6 +82,7 @@ async function loginToken(token: string): Promise<string> {
     const d = await raw('token/login', { token }, undefined);
     if (!d || d.error) throw new AuthError(`Wialon login failed (error ${d?.error})`);
     sessions.set(token, d.eid as string);
+    await applyLocale(d.eid as string);
     return d.eid as string;
   })();
   logins.set(token, p);
@@ -82,6 +98,7 @@ export async function authenticate(token: string): Promise<any> {
   const d = await raw('token/login', { token }, undefined);
   if (!d || d.error) throw new AuthError(`Wialon login failed (error ${d?.error})`);
   sessions.set(token, d.eid as string);
+  await applyLocale(d.eid as string);
   return d;
 }
 

@@ -60,6 +60,15 @@ function looksLikeAddress(text: string): boolean {
   return /km from|Azerbaijan|küç\.|street|улиц/i.test(text);
 }
 
+/** Wialon returns unit labels in the account language (en). Normalize to RU. */
+export function localizeUnits(s: string): string {
+  return String(s)
+    .replace(/km\/h/gi, 'км/ч')
+    .replace(/\bmph\b/gi, 'миль/ч')
+    .replace(/(\d)\s*l\b/gi, '$1 lt') // "0.00 l" -> "0.00 lt"
+    .replace(/\bkm\b/gi, 'км');
+}
+
 // ---- column lookup ----------------------------------------------------------
 
 function indexer(header: string[]): (label: string) => number {
@@ -83,9 +92,9 @@ export function mapTripRow(c: WialonCell[], header: string[]): MergedRow {
     durationSec,
     duration: formatDuration(durationSec),
     mileageKm: parseNum(cellText(c[idx('Mileage')])),
-    avgSpeed: cellText(c[idx('Avg. speed')]),
-    maxSpeed: cellText(c[idx('Max. speed')]),
-    fuel: cellText(c[idx('Fuel consumed')]),
+    avgSpeed: localizeUnits(cellText(c[idx('Avg. speed')])),
+    maxSpeed: localizeUnits(cellText(c[idx('Max. speed')])),
+    fuel: localizeUnits(cellText(c[idx('Fuel consumed')])),
     locStart: cellLoc(c[idx('Initial location')]),
     locEnd: cellLoc(c[idx('Final location')]),
   };
@@ -156,7 +165,7 @@ export function computeTotals(rows: MergedRow[]): UnitReport['totals'] {
   const fuel = moves.reduce((s, r) => s + parseNum(r.fuel || ''), 0);
   const maxSpeed = moves.reduce((m, r) => Math.max(m, parseNum(r.maxSpeed || '')), 0);
   const avgSpeed = moveSec > 0 ? Math.round(mileage / (moveSec / 3600)) : 0;
-  const fuelUnit = (moves.find((r) => /[a-zA-Zа-яА-Я]/.test(r.fuel || ''))?.fuel || '').replace(/[\d.,\s]/g, '') || 'l';
+  const fuelUnit = (moves.find((r) => /[a-zA-Zа-яА-Я]/.test(r.fuel || ''))?.fuel || '').replace(/[\d.,\s]/g, '') || 'lt';
 
   const parkSec = parks.reduce((s, r) => s + r.durationSec, 0);
 

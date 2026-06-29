@@ -1,28 +1,22 @@
 import type { LocRef, UnitReport } from '../types';
-
-const COLS = [
-  'Объект',
-  'Статус',
-  'Старт',
-  'Конец',
-  'Длительность',
-  'Пробег',
-  'Сред. скорость',
-  'Макс. скорость',
-  'Расход топлива',
-];
+import { useLang } from '../LangContext';
 
 function loc(l?: LocRef): string {
   return l?.t || '';
 }
 
 export function CombinedReportTable({ reports }: { reports: UnitReport[] }) {
-  // Flatten all units into one table; keep per-unit grouping by name then time.
-  const rows = reports.flatMap((rep) =>
-    rep.rows.map((r) => ({ unit: rep.unitName, r })),
-  );
+  const { t, fmtDur } = useLang();
+  const km = t('units.km');
+  const kmh = t('units.kmh');
+  const lt = t('units.lt');
+  const COLS = [
+    t('col.object'), t('col.status'), t('col.start'), t('col.end'), t('col.duration'),
+    t('col.mileage'), t('col.avgSpeed'), t('col.maxSpeed'), t('col.fuel'),
+  ];
 
-  // grand totals
+  const rows = reports.flatMap((rep) => rep.rows.map((r) => ({ unit: rep.unitName, r })));
+
   let mCount = 0;
   let pCount = 0;
   let mileage = 0;
@@ -34,22 +28,17 @@ export function CombinedReportTable({ reports }: { reports: UnitReport[] }) {
     mCount += rep.totals.movement.count;
     pCount += rep.totals.parking.count;
     mileage += rep.totals.movement.mileageKm;
-    fuel += parseFloat(rep.totals.movement.fuel) || 0;
-    maxSpeed = Math.max(maxSpeed, parseFloat(rep.totals.movement.maxSpeed) || 0);
+    fuel += rep.totals.movement.fuelLiters;
+    maxSpeed = Math.max(maxSpeed, rep.totals.movement.maxSpeedKmh);
   }
   for (const { r } of rows) {
     if (r.status === 'move') mSec += r.durationSec;
     else pSec += r.durationSec;
   }
-  const fmtDur = (sec: number) => {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    return h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
-  };
 
   return (
     <div className="unit-report">
-      <div className="unit-title">Сводный отчёт — {reports.length} объект(ов)</div>
+      <div className="unit-title">{t('combined.title', { n: reports.length })}</div>
       <table className="chrono">
         <thead>
           <tr>
@@ -62,16 +51,16 @@ export function CombinedReportTable({ reports }: { reports: UnitReport[] }) {
           {rows.map(({ unit, r }, i) => (
             <tr key={i} className={r.status === 'move' ? 'r-move' : 'r-park'}>
               <td className="unit-col">{unit}</td>
-              <td>{r.status === 'move' ? 'В движении' : 'Парковка'}</td>
+              <td>{r.status === 'move' ? t('row.move') : t('row.park')}</td>
               <td>{r.start.t}</td>
               <td>{r.end.t}</td>
-              <td>{r.duration}</td>
+              <td>{fmtDur(r.durationSec)}</td>
               {r.status === 'move' ? (
                 <>
-                  <td className="num">{r.mileageKm != null ? `${r.mileageKm} км` : ''}</td>
-                  <td className="num">{r.avgSpeed}</td>
-                  <td className="num">{r.maxSpeed}</td>
-                  <td className="num">{r.fuel}</td>
+                  <td className="num">{r.mileageKm != null ? `${r.mileageKm} ${km}` : ''}</td>
+                  <td className="num">{r.avgSpeedKmh != null ? `${r.avgSpeedKmh} ${kmh}` : ''}</td>
+                  <td className="num">{r.maxSpeedKmh != null ? `${r.maxSpeedKmh} ${kmh}` : ''}</td>
+                  <td className="num">{r.fuelLiters != null ? `${r.fuelLiters.toFixed(2)} ${lt}` : ''}</td>
                 </>
               ) : (
                 <td className="loc-cell" colSpan={4}>
@@ -83,7 +72,7 @@ export function CombinedReportTable({ reports }: { reports: UnitReport[] }) {
           {!rows.length && (
             <tr>
               <td colSpan={COLS.length} className="empty">
-                Нет данных за период
+                {t('table.noData')}
               </td>
             </tr>
           )}
@@ -91,25 +80,23 @@ export function CombinedReportTable({ reports }: { reports: UnitReport[] }) {
         <tfoot>
           <tr className="total">
             <td />
-            <td>Итого движение</td>
+            <td>{t('total.movement')}</td>
             <td />
             <td />
             <td>{fmtDur(mSec)}</td>
-            <td className="num">{Math.round(mileage * 100) / 100} км</td>
-            <td className="num">
-              {mSec > 0 ? Math.round(mileage / (mSec / 3600)) : 0} км/ч
-            </td>
-            <td className="num">{Math.round(maxSpeed)} км/ч</td>
-            <td className="num">{fuel.toFixed(2)} l</td>
+            <td className="num">{Math.round(mileage * 100) / 100} {km}</td>
+            <td className="num">{mSec > 0 ? Math.round(mileage / (mSec / 3600)) : 0} {kmh}</td>
+            <td className="num">{Math.round(maxSpeed)} {kmh}</td>
+            <td className="num">{fuel.toFixed(2)} {lt}</td>
           </tr>
           <tr className="total">
             <td />
-            <td>Итого стоянка</td>
+            <td>{t('total.parking')}</td>
             <td />
             <td />
             <td>{fmtDur(pSec)}</td>
             <td colSpan={4} className="loc-cell">
-              {mCount} поездок / {pCount} стоянок
+              {t('combined.summary', { trips: mCount, parks: pCount })}
             </td>
           </tr>
         </tfoot>

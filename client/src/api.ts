@@ -51,11 +51,15 @@ export async function runReport(params: ReportParams): Promise<UnitReport[]> {
   return (await handle(res)).reports;
 }
 
-export async function exportXlsx(params: ReportParams, viewMode: ViewMode): Promise<void> {
+export async function exportXlsx(
+  params: ReportParams,
+  viewMode: ViewMode,
+  lang: string,
+): Promise<void> {
   const res = await fetch('/api/export', {
     method: 'POST',
     headers: authHeaders(true),
-    body: JSON.stringify({ ...params, viewMode }),
+    body: JSON.stringify({ ...params, viewMode, lang }),
   });
   if (res.status === 401) {
     clearToken();

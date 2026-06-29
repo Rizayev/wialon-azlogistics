@@ -1,4 +1,5 @@
 import type { UnitReport, ViewMode } from '../types';
+import { useLang } from '../LangContext';
 import { UnitReportTable } from './UnitReportTable';
 import { CombinedReportTable } from './CombinedReportTable';
 
@@ -12,29 +13,25 @@ interface Props {
 }
 
 function fmt(local: string): string {
-  // "2026-06-17T00:00" -> "17.06.2026 00:00"
   const [d, t] = local.split('T');
   const [y, mo, da] = d.split('-');
   return `${da}.${mo}.${y} ${t}`;
 }
 
 export function ReportView({ reports, viewMode, loading, error, range, onExport }: Props) {
+  const { t } = useLang();
   return (
     <main className="report">
       {range && (
         <div className="period-banner">
-          Движение/стоянки за период с {fmt(range.from)} по {fmt(range.to)}
+          {t('report.period', { from: fmt(range.from), to: fmt(range.to) })}
         </div>
       )}
 
-      {error && <div className="error-box">Ошибка: {error}</div>}
-      {loading && <div className="hint">Формирование отчёта…</div>}
+      {error && <div className="error-box">{t('report.error')}: {error}</div>}
+      {loading && <div className="hint">{t('report.building')}</div>}
 
-      {!loading && !reports.length && !error && (
-        <div className="hint">
-          Выберите объект(ы), задайте период и нажмите «Применить».
-        </div>
-      )}
+      {!loading && !reports.length && !error && <div className="hint">{t('report.empty')}</div>}
 
       {!loading && reports.length > 0 && (
         <div className="report-tables">
@@ -48,14 +45,14 @@ export function ReportView({ reports, viewMode, loading, error, range, onExport 
 
       {reports.length > 0 && (
         <div className="export-bar no-print">
-          <button onClick={onExport} title="Экспорт в Excel">
-            ⬇ Excel
+          <button onClick={onExport} title="Excel">
+            ⬇ {t('export.excel')}
           </button>
-          <button onClick={() => window.print()} title="PDF (сохранить как PDF)">
-            🖨 PDF
+          <button onClick={() => window.print()} title="PDF">
+            🖨 {t('export.pdf')}
           </button>
-          <button onClick={() => window.print()} title="Печать">
-            🖨 Печать
+          <button onClick={() => window.print()} title={t('export.print')}>
+            🖨 {t('export.print')}
           </button>
         </div>
       )}

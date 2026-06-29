@@ -40,18 +40,18 @@ export interface LocRef {
   y?: number;
 }
 
-/** One merged chronology row — a movement segment or a parking. */
+/** One merged chronology row — a movement segment or a parking.
+ *  Numeric/raw values only; the client formats units + duration per language. */
 export interface MergedRow {
   status: 'move' | 'park';
   start: TimeRef;
   end: TimeRef;
   durationSec: number;
-  duration: string; // formatted "X ч Y мин"
   // movement-only
   mileageKm?: number;
-  avgSpeed?: string;
-  maxSpeed?: string;
-  fuel?: string;
+  avgSpeedKmh?: number;
+  maxSpeedKmh?: number;
+  fuelLiters?: number;
   locStart?: LocRef;
   locEnd?: LocRef;
   // parking-only
@@ -62,17 +62,15 @@ export interface MergedRow {
 export interface MovementTotals {
   count: number;
   durationSec: number;
-  duration: string;
   mileageKm: number;
-  avgSpeed: string;
-  maxSpeed: string;
-  fuel: string;
+  avgSpeedKmh: number;
+  maxSpeedKmh: number;
+  fuelLiters: number;
 }
 
 export interface ParkingTotals {
   count: number;
   durationSec: number;
-  duration: string;
 }
 
 export interface UnitReport {

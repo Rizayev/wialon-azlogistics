@@ -378,6 +378,36 @@ tr.total td {
   background: #eef3f8;
 }
 
+/* ---- language switcher ---- */
+.lang-select {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 7px 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+  cursor: pointer;
+}
+.login-langs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.lang-pill {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 4px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.lang-pill.active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
 /* ---- auth ---- */
 .user-box {
   display: flex;

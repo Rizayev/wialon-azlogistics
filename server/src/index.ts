@@ -95,10 +95,11 @@ app.post('/api/report', async (req, res) => {
 app.post('/api/export', async (req, res) => {
   const r = parseReq(req.body);
   const combined = req.body.viewMode === 'combined';
+  const lang = ['az', 'ru', 'en'].includes(req.body.lang) ? req.body.lang : 'ru';
   if (!r.unitIds.length) return res.status(400).json({ error: 'no units selected' });
   try {
     const reports = await buildReport(r);
-    const buf = await buildWorkbook(reports, combined);
+    const buf = await buildWorkbook(reports, combined, lang);
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

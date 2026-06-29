@@ -1,18 +1,7 @@
 import type { LocRef, MergedRow, UnitReport } from '../types';
+import { useLang } from '../LangContext';
 
-const COLS = [
-  'Статус',
-  'Водитель',
-  'Старт',
-  'Конец',
-  'Длительность',
-  'Пробег',
-  'Сред. скорость',
-  'Макс. скорость',
-  'Расход топлива',
-];
-
-function MapLoc({ loc }: { loc?: LocRef }) {
+function MapLoc({ loc, fallback }: { loc?: LocRef; fallback: string }) {
   if (!loc) return null;
   if (loc.x != null && loc.y != null) {
     return (
@@ -23,44 +12,53 @@ function MapLoc({ loc }: { loc?: LocRef }) {
         rel="noreferrer"
         title={loc.t}
       >
-        {loc.t || 'Показать на карте'}
+        {loc.t || fallback}
       </a>
     );
   }
   return <span title={loc.t}>{loc.t}</span>;
 }
 
-function Row({ r }: { r: MergedRow }) {
-  if (r.status === 'move') {
+export function UnitReportTable({ report }: { report: UnitReport }) {
+  const { t, fmtDur } = useLang();
+  const COLS = [
+    t('col.status'), t('col.driver'), t('col.start'), t('col.end'), t('col.duration'),
+    t('col.mileage'), t('col.avgSpeed'), t('col.maxSpeed'), t('col.fuel'),
+  ];
+  const km = t('units.km');
+  const kmh = t('units.kmh');
+  const lt = t('units.lt');
+
+  function Row({ r }: { r: MergedRow }) {
+    if (r.status === 'move') {
+      return (
+        <tr className="r-move">
+          <td>{t('row.move')}</td>
+          <td />
+          <td>{r.start.t}</td>
+          <td>{r.end.t}</td>
+          <td>{fmtDur(r.durationSec)}</td>
+          <td className="num">{r.mileageKm != null ? `${r.mileageKm} ${km}` : ''}</td>
+          <td className="num">{r.avgSpeedKmh != null ? `${r.avgSpeedKmh} ${kmh}` : ''}</td>
+          <td className="num">{r.maxSpeedKmh != null ? `${r.maxSpeedKmh} ${kmh}` : ''}</td>
+          <td className="num">{r.fuelLiters != null ? `${r.fuelLiters.toFixed(2)} ${lt}` : ''}</td>
+        </tr>
+      );
+    }
     return (
-      <tr className="r-move">
-        <td>В движении</td>
+      <tr className="r-park">
+        <td>{t('row.park')}</td>
         <td />
         <td>{r.start.t}</td>
         <td>{r.end.t}</td>
-        <td>{r.duration}</td>
-        <td className="num">{r.mileageKm != null ? `${r.mileageKm} км` : ''}</td>
-        <td className="num">{r.avgSpeed}</td>
-        <td className="num">{r.maxSpeed}</td>
-        <td className="num">{r.fuel}</td>
+        <td>{fmtDur(r.durationSec)}</td>
+        <td className="loc-cell" colSpan={4}>
+          <MapLoc loc={r.location} fallback={t('map.show')} />
+        </td>
       </tr>
     );
   }
-  return (
-    <tr className="r-park">
-      <td>Парковка</td>
-      <td />
-      <td>{r.start.t}</td>
-      <td>{r.end.t}</td>
-      <td>{r.duration}</td>
-      <td className="loc-cell" colSpan={4}>
-        <MapLoc loc={r.location} />
-      </td>
-    </tr>
-  );
-}
 
-export function UnitReportTable({ report }: { report: UnitReport }) {
   const m = report.totals.movement;
   const p = report.totals.parking;
   return (
@@ -81,31 +79,31 @@ export function UnitReportTable({ report }: { report: UnitReport }) {
           {!report.rows.length && (
             <tr>
               <td colSpan={COLS.length} className="empty">
-                Нет данных за период
+                {t('table.noData')}
               </td>
             </tr>
           )}
         </tbody>
         <tfoot>
           <tr className="total">
-            <td>Итого движение</td>
+            <td>{t('total.movement')}</td>
             <td>{m.count}</td>
             <td />
             <td />
-            <td>{m.duration}</td>
-            <td className="num">{m.mileageKm} км</td>
-            <td className="num">{m.avgSpeed}</td>
-            <td className="num">{m.maxSpeed}</td>
-            <td className="num">{m.fuel}</td>
+            <td>{fmtDur(m.durationSec)}</td>
+            <td className="num">{m.mileageKm} {km}</td>
+            <td className="num">{m.avgSpeedKmh} {kmh}</td>
+            <td className="num">{m.maxSpeedKmh} {kmh}</td>
+            <td className="num">{m.fuelLiters.toFixed(2)} {lt}</td>
           </tr>
           <tr className="total">
-            <td>Итого стоянка</td>
+            <td>{t('total.parking')}</td>
             <td>{p.count}</td>
             <td />
             <td />
-            <td>{p.duration}</td>
+            <td>{fmtDur(p.durationSec)}</td>
             <td colSpan={4} className="loc-cell">
-              Все адреса
+              {t('total.allAddresses')}
             </td>
           </tr>
         </tfoot>

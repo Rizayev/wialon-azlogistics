@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Group, Unit } from '../types';
+import { useLang } from '../LangContext';
 
 interface Props {
   units: Unit[];
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function ObjectList({ units, groups, selected, onSelected }: Props) {
+  const { t } = useLang();
   const [query, setQuery] = useState('');
   const [groupId, setGroupId] = useState<number | 0>(0);
 
@@ -48,7 +50,7 @@ export function ObjectList({ units, groups, selected, onSelected }: Props) {
     <div className="objlist">
       <input
         className="search"
-        placeholder="Искать по имени"
+        placeholder={t('obj.search')}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -57,7 +59,7 @@ export function ObjectList({ units, groups, selected, onSelected }: Props) {
         value={groupId}
         onChange={(e) => setGroupId(Number(e.target.value))}
       >
-        <option value={0}>Выберите группу</option>
+        <option value={0}>{t('obj.selectGroup')}</option>
         {groups.map((g) => (
           <option key={g.id} value={g.id}>
             {g.nm} ({g.units.length})
@@ -91,7 +93,7 @@ export function ObjectList({ units, groups, selected, onSelected }: Props) {
             <span className="unit-menu">⋮</span>
           </li>
         ))}
-        {!visible.length && <li className="empty">Нет объектов</li>}
+        {!visible.length && <li className="empty">{t('obj.empty')}</li>}
       </ul>
     </div>
   );

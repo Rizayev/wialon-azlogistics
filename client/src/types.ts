@@ -25,11 +25,10 @@ export interface MergedRow {
   start: TimeRef;
   end: TimeRef;
   durationSec: number;
-  duration: string;
   mileageKm?: number;
-  avgSpeed?: string;
-  maxSpeed?: string;
-  fuel?: string;
+  avgSpeedKmh?: number;
+  maxSpeedKmh?: number;
+  fuelLiters?: number;
   locStart?: LocRef;
   locEnd?: LocRef;
   location?: LocRef;
@@ -43,15 +42,15 @@ export interface UnitReport {
   totals: {
     movement: {
       count: number;
-      duration: string;
+      durationSec: number;
       mileageKm: number;
-      avgSpeed: string;
-      maxSpeed: string;
-      fuel: string;
+      avgSpeedKmh: number;
+      maxSpeedKmh: number;
+      fuelLiters: number;
     };
     parking: {
       count: number;
-      duration: string;
+      durationSec: number;
     };
   };
 }

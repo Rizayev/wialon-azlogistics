@@ -1,4 +1,5 @@
 import type { Group, ShowFilter, Unit, ViewMode } from '../types';
+import { useLang } from '../LangContext';
 import { ObjectList } from './ObjectList';
 import { ReportSettings } from './ReportSettings';
 
@@ -18,15 +19,16 @@ interface Props {
 }
 
 export function Sidebar(props: Props) {
+  const { t } = useLang();
   return (
     <aside className="sidebar">
       <div className="side-tabs">
-        <button className="side-tab active">Объекты</button>
+        <button className="side-tab active">{t('side.objects')}</button>
         <button className="side-tab" disabled>
-          Геозоны
+          {t('side.geozones')}
         </button>
         <button className="side-tab" disabled>
-          Водители
+          {t('side.drivers')}
         </button>
       </div>
       <ObjectList

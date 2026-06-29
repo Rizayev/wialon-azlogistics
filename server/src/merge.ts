@@ -44,29 +44,9 @@ export function parseHms(s: string): number {
   return parts[0] || 0;
 }
 
-/** Seconds -> "X ч Y мин" / "Y мин Z сек" / "Z сек" (Russian, matches Wialon UI). */
-export function formatDuration(sec: number): string {
-  sec = Math.max(0, Math.round(sec));
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  if (h > 0) return m > 0 ? `${h} ч ${m} мин` : `${h} ч`;
-  if (m > 0) return s > 0 ? `${m} мин ${s} сек` : `${m} мин`;
-  return `${s} сек`;
-}
-
 /** Heuristic: a geocoded street address vs a named geofence. */
 function looksLikeAddress(text: string): boolean {
   return /km from|Azerbaijan|küç\.|street|улиц/i.test(text);
-}
-
-/** Wialon returns unit labels in the account language (en). Normalize to RU. */
-export function localizeUnits(s: string): string {
-  return String(s)
-    .replace(/km\/h/gi, 'км/ч')
-    .replace(/\bmph\b/gi, 'миль/ч')
-    .replace(/(\d)\s*l\b/gi, '$1 lt') // "0.00 l" -> "0.00 lt"
-    .replace(/\bkm\b/gi, 'км');
 }
 
 // ---- column lookup ----------------------------------------------------------
@@ -90,11 +70,10 @@ export function mapTripRow(c: WialonCell[], header: string[]): MergedRow {
     start,
     end,
     durationSec,
-    duration: formatDuration(durationSec),
     mileageKm: parseNum(cellText(c[idx('Mileage')])),
-    avgSpeed: localizeUnits(cellText(c[idx('Avg. speed')])),
-    maxSpeed: localizeUnits(cellText(c[idx('Max. speed')])),
-    fuel: localizeUnits(cellText(c[idx('Fuel consumed')])),
+    avgSpeedKmh: parseNum(cellText(c[idx('Avg. speed')])),
+    maxSpeedKmh: parseNum(cellText(c[idx('Max. speed')])),
+    fuelLiters: parseNum(cellText(c[idx('Fuel consumed')])),
     locStart: cellLoc(c[idx('Initial location')]),
     locEnd: cellLoc(c[idx('Final location')]),
   };
@@ -112,7 +91,6 @@ export function mapParkRow(c: WialonCell[], header: string[]): MergedRow {
     start,
     end,
     durationSec,
-    duration: formatDuration(durationSec),
     location,
     inGeofence: location.t ? !looksLikeAddress(location.t) : false,
   };
@@ -162,10 +140,9 @@ export function computeTotals(rows: MergedRow[]): UnitReport['totals'] {
 
   const moveSec = moves.reduce((s, r) => s + r.durationSec, 0);
   const mileage = moves.reduce((s, r) => s + (r.mileageKm || 0), 0);
-  const fuel = moves.reduce((s, r) => s + parseNum(r.fuel || ''), 0);
-  const maxSpeed = moves.reduce((m, r) => Math.max(m, parseNum(r.maxSpeed || '')), 0);
+  const fuel = moves.reduce((s, r) => s + (r.fuelLiters || 0), 0);
+  const maxSpeed = moves.reduce((m, r) => Math.max(m, r.maxSpeedKmh || 0), 0);
   const avgSpeed = moveSec > 0 ? Math.round(mileage / (moveSec / 3600)) : 0;
-  const fuelUnit = (moves.find((r) => /[a-zA-Zа-яА-Я]/.test(r.fuel || ''))?.fuel || '').replace(/[\d.,\s]/g, '') || 'lt';
 
   const parkSec = parks.reduce((s, r) => s + r.durationSec, 0);
 
@@ -173,16 +150,14 @@ export function computeTotals(rows: MergedRow[]): UnitReport['totals'] {
     movement: {
       count: moves.length,
       durationSec: moveSec,
-      duration: formatDuration(moveSec),
       mileageKm: Math.round(mileage * 100) / 100,
-      avgSpeed: `${avgSpeed} км/ч`,
-      maxSpeed: `${Math.round(maxSpeed)} км/ч`,
-      fuel: `${(Math.round(fuel * 100) / 100).toFixed(2)} ${fuelUnit}`,
+      avgSpeedKmh: avgSpeed,
+      maxSpeedKmh: Math.round(maxSpeed),
+      fuelLiters: Math.round(fuel * 100) / 100,
     },
     parking: {
       count: parks.length,
       durationSec: parkSec,
-      duration: formatDuration(parkSec),
     },
   };
 }

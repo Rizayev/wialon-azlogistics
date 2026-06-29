@@ -8,6 +8,7 @@ import {
   validateToken,
 } from './api';
 import { captureTokenFromUrl, getConfig, getToken, logout } from './auth';
+import { useLang } from './LangContext';
 import type {
   Group,
   ReportParams,
@@ -43,6 +44,7 @@ function todayLocal(time: string): string {
 type AuthState = 'checking' | 'login' | 'ready';
 
 export function App() {
+  const { t, lang } = useLang();
   const [auth, setAuth] = useState<AuthState>('checking');
   const [user, setUser] = useState<string | undefined>(undefined);
 
@@ -119,7 +121,7 @@ export function App() {
 
   async function apply() {
     if (!selected.length) {
-      setError('Выберите хотя бы один объект');
+      setError(t('app.selectUnit'));
       return;
     }
     setLoading(true);
@@ -136,14 +138,14 @@ export function App() {
 
   async function doExport() {
     try {
-      await exportXlsx(params, viewMode);
+      await exportXlsx(params, viewMode, lang);
     } catch (e: any) {
       onError(e);
     }
   }
 
   if (auth === 'checking') {
-    return <div className="login-screen"><div className="hint">Проверка авторизации…</div></div>;
+    return <div className="login-screen"><div className="hint">{t('app.checking')}</div></div>;
   }
   if (auth === 'login') {
     return <Login error={error} />;

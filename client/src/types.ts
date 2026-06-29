@@ -55,6 +55,35 @@ export interface UnitReport {
   };
 }
 
+export interface TemplateInfo {
+  id: number;
+  name: string;
+  merged: boolean;
+}
+
+export interface GenericCell {
+  text: string;
+  x?: number;
+  y?: number;
+}
+
+export interface GenericTable {
+  name: string;
+  label: string;
+  header: string[];
+  rows: GenericCell[][];
+}
+
+export interface GenericUnitReport {
+  unitId: number;
+  unitName: string;
+  tables: GenericTable[];
+}
+
+export type RunResult =
+  | { kind: 'merged'; reports: UnitReport[] }
+  | { kind: 'generic'; reports: GenericUnitReport[] };
+
 export type ShowFilter =
   | 'all'
   | 'move'

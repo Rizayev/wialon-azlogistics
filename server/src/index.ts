@@ -2,8 +2,15 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { buildReport, getGroups, getUnits } from './report';
-import { buildWorkbook } from './excel';
+import {
+  MERGED_TEMPLATE_ID,
+  buildReport,
+  getGroups,
+  getTemplates,
+  getUnits,
+} from './report';
+import { runGeneric } from './generic';
+import { buildGenericWorkbook, buildWorkbook } from './excel';
 import {
   AuthError,
   authenticate,
@@ -81,6 +88,36 @@ app.get('/api/groups', async (_req, res) => {
   }
 });
 
+app.get('/api/templates', async (_req, res) => {
+  try {
+    res.json({ templates: await getTemplates(), mergedId: MERGED_TEMPLATE_ID });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+function langOf(body: any): string {
+  return ['az', 'ru', 'en'].includes(body?.lang) ? body.lang : 'ru';
+}
+
+// Unified run endpoint: merged template -> chronology merge; others -> generic tables.
+app.post('/api/run', async (req, res) => {
+  const r = parseReq(req.body);
+  const templateId = Number(req.body.templateId) || MERGED_TEMPLATE_ID;
+  if (!r.unitIds.length) return res.status(400).json({ error: 'no units selected' });
+  if (!r.from || !r.to) return res.status(400).json({ error: 'invalid interval' });
+  try {
+    if (templateId === MERGED_TEMPLATE_ID) {
+      res.json({ kind: 'merged', reports: await buildReport(r) });
+    } else {
+      const reports = await runGeneric(templateId, r.unitIds, r.from, r.to, langOf(req.body));
+      res.json({ kind: 'generic', reports });
+    }
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
 app.post('/api/report', async (req, res) => {
   const r = parseReq(req.body);
   if (!r.unitIds.length) return res.status(400).json({ error: 'no units selected' });
@@ -95,11 +132,14 @@ app.post('/api/report', async (req, res) => {
 app.post('/api/export', async (req, res) => {
   const r = parseReq(req.body);
   const combined = req.body.viewMode === 'combined';
-  const lang = ['az', 'ru', 'en'].includes(req.body.lang) ? req.body.lang : 'ru';
+  const lang = langOf(req.body);
+  const templateId = Number(req.body.templateId) || MERGED_TEMPLATE_ID;
   if (!r.unitIds.length) return res.status(400).json({ error: 'no units selected' });
   try {
-    const reports = await buildReport(r);
-    const buf = await buildWorkbook(reports, combined, lang);
+    const buf =
+      templateId === MERGED_TEMPLATE_ID
+        ? await buildWorkbook(await buildReport(r), combined, lang)
+        : await buildGenericWorkbook(await runGeneric(templateId, r.unitIds, r.from, r.to, lang));
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

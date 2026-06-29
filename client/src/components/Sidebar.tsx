@@ -1,4 +1,4 @@
-import type { Group, ShowFilter, Unit, ViewMode } from '../types';
+import type { Group, ShowFilter, TemplateInfo, Unit, ViewMode } from '../types';
 import { useLang } from '../LangContext';
 import { ObjectList } from './ObjectList';
 import { ReportSettings } from './ReportSettings';
@@ -6,6 +6,9 @@ import { ReportSettings } from './ReportSettings';
 interface Props {
   units: Unit[];
   groups: Group[];
+  templates: TemplateInfo[];
+  templateId: number;
+  onTemplateId: (id: number) => void;
   selected: number[];
   onSelected: (ids: number[]) => void;
   show: ShowFilter;
@@ -38,6 +41,9 @@ export function Sidebar(props: Props) {
         onSelected={props.onSelected}
       />
       <ReportSettings
+        templates={props.templates}
+        templateId={props.templateId}
+        onTemplateId={props.onTemplateId}
         show={props.show}
         onShow={props.onShow}
         minParking={props.minParking}

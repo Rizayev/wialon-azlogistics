@@ -162,12 +162,34 @@ export async function execReport(
   return (d?.reportResult?.tables || []) as ExecResultTable[];
 }
 
+export async function getResultRows(
+  tableIndex: number,
+  indexFrom: number,
+  indexTo: number,
+): Promise<WialonRow[]> {
+  const d = await call('report/get_result_rows', { tableIndex, indexFrom, indexTo });
+  return Array.isArray(d) ? (d as WialonRow[]) : [];
+}
+
 export async function getResultSubrows(
   tableIndex: number,
   rowIndex: number,
 ): Promise<WialonRow[]> {
   const d = await call('report/get_result_subrows', { tableIndex, rowIndex });
   return Array.isArray(d) ? (d as WialonRow[]) : [];
+}
+
+/** Override the session locale (timezone + language) for the current request. */
+export async function setLocale(lang: string): Promise<void> {
+  const token = activeToken();
+  let sid = sessions.get(token);
+  if (!sid) sid = await loginToken(token);
+  const language = ['en', 'ru', 'az'].includes(lang) ? lang : 'en';
+  try {
+    await raw('render/set_locale', { tzOffset: TZ_OFFSET, language }, sid);
+  } catch {
+    /* non-fatal */
+  }
 }
 
 export async function cleanupResult(): Promise<void> {

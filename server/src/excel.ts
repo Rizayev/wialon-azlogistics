@@ -1,7 +1,7 @@
 // Build an .xlsx workbook from merged unit reports, localized to AZ/RU/EN.
 
 import ExcelJS from 'exceljs';
-import type { MergedRow, UnitReport } from './types';
+import type { GenericUnitReport, MergedRow, UnitReport } from './types';
 
 export type Lang = 'az' | 'ru' | 'en';
 
@@ -110,9 +110,9 @@ function fillSheet(ws: ExcelJS.Worksheet, rep: UnitReport, withObject: boolean, 
 export async function buildWorkbook(
   reports: UnitReport[],
   combined: boolean,
-  lang: Lang = 'ru',
+  lang: string = 'ru',
 ): Promise<Buffer> {
-  const d = DICT[lang] || DICT.ru;
+  const d = DICT[lang as Lang] || DICT.ru;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Wialon AZLogistika';
 
@@ -128,6 +128,48 @@ export async function buildWorkbook(
       fillSheet(wb.addWorksheet(safe), rep, false, d);
     });
   }
+
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
+}
+
+/** Workbook for generic (non-merged) reports: one sheet per unit, tables stacked. */
+export async function buildGenericWorkbook(reports: GenericUnitReport[]): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Wialon AZLogistika';
+
+  reports.forEach((rep, i) => {
+    const safe = rep.unitName.replace(/[\\/?*[\]:]/g, ' ').slice(0, 28) || `Unit ${i + 1}`;
+    const ws = wb.addWorksheet(safe);
+    const titleRow = ws.addRow([rep.unitName]);
+    titleRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    titleRow.eachCell((c) => {
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1C6FB5' } };
+    });
+
+    let maxCols = 1;
+    for (const tbl of rep.tables) {
+      ws.addRow([]);
+      const lbl = ws.addRow([tbl.label]);
+      lbl.font = { bold: true };
+      const hr = ws.addRow(tbl.header);
+      hr.font = { bold: true };
+      hr.eachCell((c) => {
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9EDF1' } };
+      });
+      for (const row of tbl.rows) ws.addRow(row.map((c) => c.text));
+      maxCols = Math.max(maxCols, tbl.header.length);
+    }
+    ws.mergeCells(1, 1, 1, Math.max(1, maxCols));
+
+    ws.columns.forEach((col) => {
+      let m = 10;
+      col.eachCell?.({ includeEmpty: false }, (c) => {
+        m = Math.max(m, String(c.value ?? '').length + 2);
+      });
+      col.width = Math.min(m, 48);
+    });
+  });
 
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf);

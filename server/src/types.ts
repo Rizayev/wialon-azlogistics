@@ -83,6 +83,26 @@ export interface UnitReport {
   };
 }
 
+// ---- generic (non-merged) reports ----
+export interface GenericCell {
+  text: string;
+  x?: number;
+  y?: number;
+}
+
+export interface GenericTable {
+  name: string;
+  label: string;
+  header: string[];
+  rows: GenericCell[][];
+}
+
+export interface GenericUnitReport {
+  unitId: number;
+  unitName: string;
+  tables: GenericTable[];
+}
+
 export type ShowFilter =
   | 'all'
   | 'move'

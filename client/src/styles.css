@@ -220,12 +220,16 @@ body {
   padding: 10px 8px;
   background: #fafbfc;
 }
-.report-type {
+.report-type,
+.report-type-select {
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 7px 8px;
   background: #fff;
   margin-bottom: 6px;
+  width: 100%;
+  font-family: inherit;
+  font-size: 12px;
 }
 .settings-title {
   text-align: center;
@@ -354,6 +358,18 @@ tr.total td {
   font-weight: bold;
   background: #f0f2f5;
   border-top: 2px solid #c4ccd4;
+}
+
+/* ---- generic report tables ---- */
+.gtable {
+  margin-top: 16px;
+}
+.gtable-label {
+  background: #e9edf1;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  padding: 6px 10px;
+  font-weight: bold;
 }
 
 /* ---- export bar ---- */

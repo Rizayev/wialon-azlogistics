@@ -1,5 +1,12 @@
 import { clearToken, getToken } from './auth';
-import type { Group, ReportParams, Unit, UnitReport, ViewMode } from './types';
+import type {
+  Group,
+  ReportParams,
+  RunResult,
+  TemplateInfo,
+  Unit,
+  ViewMode,
+} from './types';
 
 export class AuthError extends Error {
   code = 'AUTH';
@@ -42,24 +49,33 @@ export async function fetchGroups(): Promise<Group[]> {
   return (await handle(await fetch('/api/groups', { headers: authHeaders() }))).groups;
 }
 
-export async function runReport(params: ReportParams): Promise<UnitReport[]> {
-  const res = await fetch('/api/report', {
+export async function fetchTemplates(): Promise<{ templates: TemplateInfo[]; mergedId: number }> {
+  return handle(await fetch('/api/templates', { headers: authHeaders() }));
+}
+
+export async function runReport(
+  params: ReportParams,
+  templateId: number,
+  lang: string,
+): Promise<RunResult> {
+  const res = await fetch('/api/run', {
     method: 'POST',
     headers: authHeaders(true),
-    body: JSON.stringify(params),
+    body: JSON.stringify({ ...params, templateId, lang }),
   });
-  return (await handle(res)).reports;
+  return handle(res);
 }
 
 export async function exportXlsx(
   params: ReportParams,
   viewMode: ViewMode,
   lang: string,
+  templateId: number,
 ): Promise<void> {
   const res = await fetch('/api/export', {
     method: 'POST',
     headers: authHeaders(true),
-    body: JSON.stringify({ ...params, viewMode, lang }),
+    body: JSON.stringify({ ...params, viewMode, lang, templateId }),
   });
   if (res.status === 401) {
     clearToken();

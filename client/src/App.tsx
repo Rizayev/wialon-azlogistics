@@ -3,6 +3,7 @@ import {
   AuthError,
   exportXlsx,
   fetchGroups,
+  fetchTemplates,
   fetchUnits,
   runReport,
   validateToken,
@@ -12,9 +13,10 @@ import { useLang } from './LangContext';
 import type {
   Group,
   ReportParams,
+  RunResult,
   ShowFilter,
+  TemplateInfo,
   Unit,
-  UnitReport,
   ViewMode,
 } from './types';
 import { Toolbar } from './components/Toolbar';
@@ -50,6 +52,8 @@ export function App() {
 
   const [units, setUnits] = useState<Unit[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [templates, setTemplates] = useState<TemplateInfo[]>([]);
+  const [templateId, setTemplateId] = useState<number>(16);
   const [selected, setSelected] = useState<number[]>([]);
 
   const [from, setFrom] = useState(() => todayLocal('00:00'));
@@ -60,7 +64,7 @@ export function App() {
   const [minMovement, setMinMovement] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('per-unit');
 
-  const [reports, setReports] = useState<UnitReport[]>([]);
+  const [result, setResult] = useState<RunResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appliedRange, setAppliedRange] = useState<{ from: string; to: string } | null>(null);
@@ -90,10 +94,12 @@ export function App() {
   // ---- load objects once authenticated ----
   useEffect(() => {
     if (auth !== 'ready') return;
-    Promise.all([fetchUnits(), fetchGroups()])
-      .then(([u, g]) => {
+    Promise.all([fetchUnits(), fetchGroups(), fetchTemplates()])
+      .then(([u, g, tpl]) => {
         setUnits(u);
         setGroups(g);
+        setTemplates(tpl.templates);
+        setTemplateId(tpl.mergedId);
         if (u.length) setSelected((s) => (s.length ? s : [u[0].id]));
       })
       .catch(onError);
@@ -127,7 +133,7 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      setReports(await runReport(params));
+      setResult(await runReport(params, templateId, lang));
       setAppliedRange({ from, to });
     } catch (e: any) {
       onError(e);
@@ -138,7 +144,7 @@ export function App() {
 
   async function doExport() {
     try {
-      await exportXlsx(params, viewMode, lang);
+      await exportXlsx(params, viewMode, lang, templateId);
     } catch (e: any) {
       onError(e);
     }
@@ -167,6 +173,9 @@ export function App() {
         <Sidebar
           units={units}
           groups={groups}
+          templates={templates}
+          templateId={templateId}
+          onTemplateId={setTemplateId}
           selected={selected}
           onSelected={setSelected}
           show={show}
@@ -179,7 +188,7 @@ export function App() {
           onViewMode={setViewMode}
         />
         <ReportView
-          reports={reports}
+          result={result}
           viewMode={viewMode}
           loading={loading}
           error={error}

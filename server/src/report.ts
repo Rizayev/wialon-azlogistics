@@ -7,14 +7,33 @@ import {
   execReport,
   getResultSubrows,
   searchItems,
+  setLocale,
 } from './wialonClient';
 import { computeTotals, mergeRows } from './merge';
 import type { Group, ReportRequest, Unit, UnitReport } from './types';
 
-const RESOURCE_ID = Number(process.env.WIALON_RESOURCE_ID || 49131);
-const TEMPLATE_ID = Number(process.env.WIALON_TEMPLATE_ID || 16);
+export const RESOURCE_ID = Number(process.env.WIALON_RESOURCE_ID || 49131);
+export const TEMPLATE_ID = Number(process.env.WIALON_TEMPLATE_ID || 16);
+export const MERGED_TEMPLATE_ID = TEMPLATE_ID;
 
 const FLAG_BASE = 1;
+const FLAG_REPORTS = 8192;
+
+export interface TemplateInfo {
+  id: number;
+  name: string;
+  merged: boolean;
+}
+
+/** List report templates in the resource (id + name). */
+export async function getTemplates(): Promise<TemplateInfo[]> {
+  const items = await searchItems('avl_resource', FLAG_BASE | FLAG_REPORTS);
+  const res = items.find((it: any) => it.id === RESOURCE_ID) || items[0];
+  const rep = (res?.rep || {}) as Record<string, { n: string }>;
+  return Object.entries(rep)
+    .map(([id, v]) => ({ id: Number(id), name: v.n, merged: Number(id) === MERGED_TEMPLATE_ID }))
+    .sort((a, b) => a.id - b.id);
+}
 // Units differ per token (per user), so cache by active token.
 const unitCache = new Map<string, Unit[]>();
 
@@ -45,6 +64,8 @@ export async function buildUnitReport(
   unitId: number,
   req: ReportRequest,
 ): Promise<UnitReport> {
+  // Merge mapping relies on English column labels; force en regardless of UI lang.
+  await setLocale('en');
   const tables = await execReport(
     RESOURCE_ID,
     TEMPLATE_ID,

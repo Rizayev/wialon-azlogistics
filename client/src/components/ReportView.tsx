@@ -1,10 +1,11 @@
-import type { UnitReport, ViewMode } from '../types';
+import type { RunResult, ViewMode } from '../types';
 import { useLang } from '../LangContext';
 import { UnitReportTable } from './UnitReportTable';
 import { CombinedReportTable } from './CombinedReportTable';
+import { GenericReportTable } from './GenericReportTable';
 
 interface Props {
-  reports: UnitReport[];
+  result: RunResult | null;
   viewMode: ViewMode;
   loading: boolean;
   error: string | null;
@@ -18,8 +19,11 @@ function fmt(local: string): string {
   return `${da}.${mo}.${y} ${t}`;
 }
 
-export function ReportView({ reports, viewMode, loading, error, range, onExport }: Props) {
+export function ReportView({ result, viewMode, loading, error, range, onExport }: Props) {
   const { t } = useLang();
+  const hasData =
+    !loading && !!result && result.reports.length > 0;
+
   return (
     <main className="report">
       {range && (
@@ -31,19 +35,27 @@ export function ReportView({ reports, viewMode, loading, error, range, onExport 
       {error && <div className="error-box">{t('report.error')}: {error}</div>}
       {loading && <div className="hint">{t('report.building')}</div>}
 
-      {!loading && !reports.length && !error && <div className="hint">{t('report.empty')}</div>}
+      {!loading && !result && !error && <div className="hint">{t('report.empty')}</div>}
 
-      {!loading && reports.length > 0 && (
+      {hasData && result!.kind === 'merged' && (
         <div className="report-tables">
           {viewMode === 'combined' ? (
-            <CombinedReportTable reports={reports} />
+            <CombinedReportTable reports={result!.reports} />
           ) : (
-            reports.map((r) => <UnitReportTable key={r.unitId} report={r} />)
+            result!.reports.map((r) => <UnitReportTable key={r.unitId} report={r} />)
           )}
         </div>
       )}
 
-      {reports.length > 0 && (
+      {hasData && result!.kind === 'generic' && (
+        <div className="report-tables">
+          {result!.reports.map((r) => (
+            <GenericReportTable key={r.unitId} report={r} />
+          ))}
+        </div>
+      )}
+
+      {hasData && (
         <div className="export-bar no-print">
           <button onClick={onExport} title="Excel">
             ⬇ {t('export.excel')}
